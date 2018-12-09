@@ -2,6 +2,7 @@ import os
 import soundfile as sf
 import numpy as np
 import pyfftw
+import math
 
 class AudioFile:
     extension = ""
@@ -155,8 +156,8 @@ class AudioFile:
         # print(spatialness)
         return spatialness
 
-    def getDevelopmentOverTime(self):
-        numsteps = 100
+    def getDevelopmentOverTime(self, seconds):
+        numsteps = math.ceil(seconds / self.duration)
 
         stepsize = self.numSamples / numsteps
         energyPerMoment = []

@@ -24,7 +24,7 @@ def main():
     # "J:\\BackUp\\17-09-11 Audio - Samples\\Samples\\Musicradar Realworld Drum Samples\\"
     # "J:\\Dropbox\\Muziek\\Samples\\Created\\Test Audio\\Noise"
     # "J:\\Dropbox\\Muziek\\Samples\\Created\\Test Audio\\", "J:\\Dropbox\\Muziek\\Samples\\Created\\Test Audio\\Sine"
-    ff = FileFinder.FileFinder(["J:\\Dropbox\\Muziek\\Samples\\", "J:\\BackUp\\17-09-11 Audio - Samples\\Samples\\Musicradar Realworld Drum Samples\\", "J:/BackUp/17-09-11 Audio - Samples/Samples/Pro Tools Samples/" ])
+    ff = FileFinder.FileFinder(["J:\\Dropbox\\Muziek\\Samples\\", "J:\\BackUp\\17-09-11 Audio - Samples\\Samples\\Musicradar Realworld Drum Samples\\", "J:/BackUp/17-09-11 Audio - Samples/Samples/Pro Tools Samples/", "J:/BackUp/17-09-11 Audio - Samples/Samples/808s_by_SHD", "J:/BackUp/17-09-11 Audio - Samples/Samples/Cloudstorm Samples - Free Drums V1", "J:/BackUp/17-09-11 Audio - Samples/Samples/J:\BackUp\17-09-11 Audio - Samples\Samples\GSCW DRUMS Library Vol.1"])
                                 #    , "J:\\BackUp\\17-09-11 Audio - Samples\\Samples\\Hip-Hop\\"
                                 #    , "J:/BackUp/17-09-11 Audio - Samples/Samples/Pro Tools Samples/"
                                 #
@@ -58,20 +58,24 @@ def main():
             # highmid = af.getMagnitudeForFrequencyRange(5000, 10000)
             # highs = af.getMagnitudeForFrequencyRange(10000, 20000)
             # lows = af.getMagnitudeForFrequencyRange(0, 10000)
-            sub = af.getMagnitudeForFrequencyRange(20, 100)
-            punch = af.getMagnitudeForFrequencyRange(100, 300)
-            lowmid = af.getMagnitudeForFrequencyRange(300, 500)
-            mid = af.getMagnitudeForFrequencyRange(500, 1000)
-            highmid = af.getMagnitudeForFrequencyRange(1000, 2000)
-            highs = af.getMagnitudeForFrequencyRange(2000, 20000)
-            duration = (af.duration / 100)**0.5
-            median = af.getMedianAmp()
+
+            numFreqElements = 6
+            sub = af.getMagnitudeForFrequencyRange(20, 100) / numFreqElements * 2
+            punch = af.getMagnitudeForFrequencyRange(100, 300) / numFreqElements * 2
+            lowmid = af.getMagnitudeForFrequencyRange(300, 500) / numFreqElements * 2
+            mid = af.getMagnitudeForFrequencyRange(500, 1000) / numFreqElements * 2
+            highmid = af.getMagnitudeForFrequencyRange(1000, 2000) / numFreqElements * 2
+            highs = af.getMagnitudeForFrequencyRange(2000, 20000) / numFreqElements * 0.5
+            duration = (af.duration / 100)**0.5 * 3
+            median = af.getMedianAmp() * 2
             average = af.getAverageAmp()
-            spatialness = af.getSpatialness()
-            devOverTime = af.getDevelopmentOverTime()
+            spatialness = af.getSpatialness() * 0.5
+            devOverTimeShort = af.getDevelopmentOverTime(0.01) * 100
+            devOverTime = af.getDevelopmentOverTime(0.1) * 100
+            devOverTimeLong = af.getDevelopmentOverTime(1) * 100
 
             # afState.append([sub4, sub3, sub2, sub, punch, lowmid, mid, highmid, highs, lows])
-            afState.append([sub, punch, lowmid, mid, highmid, highs, duration, median, average, spatialness, devOverTime])
+            afState.append([sub, punch, lowmid, mid, highmid, highs, duration, median, average, spatialness, devOverTimeShort, devOverTime, devOverTimeLong])
             afStates.append(afState)
 
             totalSizeRead += af.size
@@ -84,6 +88,7 @@ def main():
 
                 print("\n<------------------------------------------------->")
                 print("STATUS: ", 100 * totalSizeRead / ff.sizeOfAudiofiles, "%")
+                GUI.my_gui.label['text'] = str(100 * totalSizeRead / ff.sizeOfAudiofiles) + "%"
                 print("<------------------------------------------------->\n")
 
             count = count + 1
@@ -121,11 +126,8 @@ def main():
         print("\n")
 
     GUI.my_gui.greet_button['command'] = guiNewAudioFiles
+
     GUI.root.mainloop()
-
-
-
-
 
 
 def testNormalization():
