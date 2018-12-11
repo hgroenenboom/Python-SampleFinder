@@ -4,6 +4,8 @@ import numpy as np
 import pyfftw
 import math
 
+DEBUG = False
+
 class AudioFile:
     extension = ""
     size = 0
@@ -39,8 +41,9 @@ class AudioFile:
             self.soundfile = sf.SoundFile(self.path)
         if self.buffer is None:
             self.buffer = self.soundfile.read()
-            print("Buffer max:", np.max(self.buffer))
-            print("Buffer min:", np.min(self.buffer))
+            if DEBUG:
+                print("Buffer max:", np.max(self.buffer))
+                print("Buffer min:", np.min(self.buffer))
 
     def getFFT(self):
         self.getWaveFile()
@@ -51,6 +54,11 @@ class AudioFile:
                 self.fft = pyfftw.interfaces.numpy_fft.rfft(buffer) #pyfftw fft
             else:
                 self.fft = pyfftw.interfaces.numpy_fft.rfft2(buffer) #pyfftw fft
+
+        # delete DC
+        self.fft = self.fft[1:]
+        # delete conjugates
+        self.fft = self.fft[ : int( 0.5*len(self.fft) ) ]
 
         return self.fft
 
@@ -89,7 +97,15 @@ class AudioFile:
                 self.monoMagFft = np.squeeze(self.monoMagFft)
             else:
                 self.monoMagFft = self.magFft
-            print("monoMagFft Sum", np.sum(self.monoMagFft))
+            if DEBUG:
+                print("monoMagFft Sum", np.sum(self.monoMagFft))
+
+        # check if data seems right
+        # for i in range(10):
+        #     print("end:", self.monoMagFft[len(self.monoMagFft) - (i + 1)], ", first:", self.monoMagFft[i])
+        #     if self.monoMagFft[len(self.monoMagFft) - (i + 1)] == self.monoMagFft[i + 1]:
+        #         print("same")
+        # print()
 
         return self.monoMagFft
 
@@ -108,22 +124,31 @@ class AudioFile:
 
         magForFreqRange = np.sum( self.monoMagFft[lowestbin:highestbin] )
 
-        return magForFreqRange
+        return self.sigmoid(magForFreqRange)
+
+    def getDCOffset(self):
+        return np.mean(self.buffer)
 
     def getAverageAmp(self):
         self.getWaveFile()
 
-        averageAmp = self.buffer
-        if(self.channels > 1):
-            averageAmp = np.mean( np.power( np.abs(self.buffer), 2.0 ), axis=1)
-        averageAmp = sum(averageAmp) / len(averageAmp)
+        averageAmp = np.abs( self.buffer )
+        averageAmp = np.mean( averageAmp )
+        averageAmp = np.subtract(averageAmp, self.getDCOffset())
+        if(averageAmp < 0):
+            print("averageAmp,", averageAmp)
 
-        return averageAmp
+        if self.getDCOffset() > 0.1:
+            print("DC Offset, ", self.getDCOffset(), " at file:", self.path)
+        return pow( averageAmp, 0.5 )
+
+    def getSigmoidDuration(self):
+        return self.sigmoid(self.duration)
 
     def getMedianAmp(self):
         self.getWaveFile()
 
-        return np.median( np.abs(self.buffer) )
+        return pow( np.median( np.abs(self.buffer) ), 0.5)
 
     def freeMem(self):
         if self.soundfile is not None:
@@ -152,12 +177,13 @@ class AudioFile:
 
             diffAmp = np.mean( diffAmp ) * 0.5
             spatialness = diffAmp
+            spatialness = spatialness / self.getAverageAmp()
 
         # print(spatialness)
-        return spatialness
+        return self.sigmoid(spatialness)
 
-    def getDevelopmentOverTime(self, seconds):
-        numsteps = math.ceil(seconds / self.duration)
+    def getTransientAmount(self, seconds):
+        numsteps = math.ceil(self.duration / seconds)
 
         stepsize = self.numSamples / numsteps
         energyPerMoment = []
@@ -166,14 +192,57 @@ class AudioFile:
             average = np.mean( np.abs( part ) )
             # print("\taverage:\t", average)
             if average > 0.000001:
-                energyPerMoment.append(average)
+                energyPerMoment.append(0.05+average)
 
         amountOfMovement = 0
         for i in range(len(energyPerMoment)-1):
-            amountOfMovement = amountOfMovement + abs( (0.0000001+energyPerMoment[i+1]) / energyPerMoment[i])
+            amountOfMovement = amountOfMovement + abs( (energyPerMoment[i+1]) / energyPerMoment[i] - 1 )
+        if len(energyPerMoment) == 1:
+            amountOfMovement = energyPerMoment[0]
 
         amountOfMovement = amountOfMovement / len(energyPerMoment)
 
-        # print("Length of energyPerMovement:\t", len(energyPerMoment))
-        # print("Amount of movement:\t", amountOfMovement, self.path)
-        return amountOfMovement
+        return self.sigmoid(amountOfMovement)
+
+    def getDynamics(self, seconds):
+        numsteps = math.ceil(self.duration / seconds)
+
+        stepsize = self.numSamples / numsteps
+        energyPerMoment = []
+        for i in range(numsteps):
+            part = self.buffer[ int( stepsize * i ) : int( (i + 1) * stepsize ) ]
+            average = np.mean( np.abs( part ) )
+            if average > 0.000001:
+                energyPerMoment.append(0.05+average)
+
+        averageEnergy = np.mean(energyPerMoment)
+
+        dynamic = 0
+        if len(energyPerMoment) == 1:
+            dynamic = energyPerMoment[0]
+        elif len(energyPerMoment) > 1:
+            for i in range(len(energyPerMoment)):
+                dynamic = dynamic + abs( averageEnergy - energyPerMoment[i] )
+
+                dynamic = dynamic / len(energyPerMoment)
+
+        return self.sigmoid(dynamic / seconds)
+
+    def getLoudestFrequency(self):
+        self.getFFTMagnitudes()
+
+        if self.monoMagFft is not None:
+            if DEBUG:
+                print("path,", self.path)
+                print("\tnumchannels,", self.channels)
+                print("\tlength of monoMagFft,", len(self.monoMagFft))
+            index_max = max(range(len(self.monoMagFft)), key=self.monoMagFft.__getitem__)
+            freq = float(index_max) / len(self.monoMagFft)
+            if DEBUG:
+                print("\tloudest freq: ", freq)
+                print()
+
+            return freq
+
+    def sigmoid(self, val):
+        return val / (1 + abs(val))

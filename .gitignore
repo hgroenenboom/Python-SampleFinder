@@ -6,6 +6,7 @@ venv
 .idea
 build
 *.spec
+states
 
 # User-specific stuff
 .idea/**/workspace.xml
