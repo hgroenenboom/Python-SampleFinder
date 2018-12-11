@@ -1,6 +1,6 @@
 import math
 import random
-
+import sys
 
 def printMDArray(mdArray):
     for i in range(len(mdArray)):
@@ -86,13 +86,19 @@ def getPointIndicesSortedByClosest(coord, coords):
         if coord is not co:
             distances.append( getEuclidianDistance(coord, co) )
         else:
-            distances.append( 1000000000 )
+            distances.append( sys.float_info.max )
 
     closestPoints = []
+
+    if(len(distances) != len(coords)):
+        print("Error length of array changed in EuclideanDistance::getPointIndicesSortedByClosest")
+        print("len distances:", len(distances), " - len coords:", len(coords))
 
     for i in range(len(coords)):
         closestPoint = min( range( len(distances) ), key=distances.__getitem__ )
         closestPoints.append(closestPoint)
-        distances[closestPoint] = 100000000000000
+        distances[closestPoint] = sys.float_info.max
+
+    print(closestPoints)
 
     return closestPoints

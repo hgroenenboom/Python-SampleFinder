@@ -13,7 +13,7 @@ import pyfftw
 DEBUG = False
 count = 0
 
-dataNames = "sub, punch, lowmid, mid, highmid, highs, duration, median, average, spatialness, devOverTimeShort, devOverTime, devOverTime2, devOverTimeLong, dynamicsLong, dynamicsShort, loudestFreq".split(",")
+dataNames = "sub, punch, lowmid, mid, highmid, highs, duration, median, average, spatialness, devOverTimeShort, devOverTime, devOverTime2, devOverTimeLong, dynamicsLong, dynamicsShort, loudestFreq".split(", ")
 def printDataArray(arr):
 
     for i in range(len(arr)):
@@ -82,10 +82,10 @@ def main():
     totalSizeRead = 0
 
     # SEARCH FOR FILE IN STATE, identifier is used to make sure the state has the same encoding
-    # weigths = [3, 5, 5, 3, 3, 10, 2, 1, 10000, 2000, 3, 12.5, 12.5, 2, 25, 25, 50]
-    # for i in range(len(weigths)):
-    #     weigths[i] *= 10
-    weigths = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    weigths = [3, 5, 5, 3, 3, 10, 2, 1, 3, 2, 3, 12.5, 12.5, 2, 25, 25, 50]
+    for i in range(len(weigths)):
+        weigths[i] *= 10
+    # weigths = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
     identifier = """sub = af.getMagnitudeForFrequencyRange(20, 100)
             punch = af.getMagnitudeForFrequencyRange(100, 300)
@@ -223,12 +223,21 @@ def main():
 
     # CREATE GUI CALLBACK, which will select a random audio file, and look for the most similar content.
     def guiNewAudioFiles():
+        d = dataNames
+        print(d)
+
         randint = random.randint(0, len(afStates))
         print("selected audiofile", randint)
         print(afStates[randint][0])
         s = afStates[randint][1]
         point = []
         for i in range(len(s)):
+            # temporarally change values to see if lookup works
+            # if d[i] == "spatialness":
+            #     point.append(1.0 * float(weigths[i]))
+            # elif d[i] == "loudestFreq":
+            #     point.append(0.2+0.5*s[i] * float(weigths[i]))
+            # else:
             point.append(s[i] * float(weigths[i]))
         print("\t", end="")
         printDataArray(point)
@@ -237,7 +246,7 @@ def main():
         GUI.my_gui.w['text'] = GUI.my_gui.currentSample
         GUI.my_gui.play()
 
-        closestPoints = EuclideanDistance.getPointIndicesSortedByClosest(eucDistanceList[randint], eucDistanceList)
+        closestPoints = EuclideanDistance.getPointIndicesSortedByClosest(point, eucDistanceList)
         GUI.my_gui.samplesSimilar = []
         GUI.my_gui.popupMenu['menu'].delete(0, 'end')
 

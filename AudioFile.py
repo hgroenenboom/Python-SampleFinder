@@ -242,7 +242,7 @@ class AudioFile:
                 print("\tloudest freq: ", freq)
                 print()
 
-            return freq
+            return pow(freq, 0.5)
 
     def sigmoid(self, val):
         return val / (1 + abs(val))
