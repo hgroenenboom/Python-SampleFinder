@@ -23,7 +23,10 @@ class FileFinder:
         # all userinputted dirs
         for directory in directories:
             # get all files in input dir
-            print("\tcurrent dir:", directory)
+            if os.path.exists(directory):
+                print("\tcurrent dir:", directory)
+            else:
+                print("ERROR: dir", directory, " not found!")
             num_files = 0
             max_files = 200
             for root, dir, files in os.walk(directory):

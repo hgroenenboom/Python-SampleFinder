@@ -33,6 +33,59 @@ def floatArrToString(arr):
 def main():
     global DEBUG, count, dataNames
 
+    # SELECT FOLDER TO SEARCH FROM FOR AUDIO FILES
+    mainFolder = "S:/Audio/Audio - Samples/Samples/"
+    dropboxFolder = "C:/Users/HAROL/Dropbox/"
+    # J:/Dropbox/Muziek/Samples/Created/Overige/
+    # J:/Dropbox/Muziek/Samples/
+    # "J:/BackUp/17-09-11 Audio - Samples/Samples/Pro Tools Samples/"
+    # "C:/Program Files (x86)/Image-Line/FL Studio 11/Data/Patches/Packs/"
+    # "J:/BackUp/17-09-11 Audio - Samples/Samples/Hip-Hop/ArtyTorrent Pack 44-Hip Hop Drum Loops 100-109 bpm-WAV samples/"
+    # "J:/Dropbox/Muziek/Samples/Created/Overige/"
+    # "J:/BackUp/17-09-11 Audio - Samples/Samples/Ethnic Percussion/"
+    # "J:/BackUp/17-09-11 Audio - Samples/Samples/Musicradar Realworld Drum Samples/"
+    # "J:/Dropbox/Muziek/Samples/Created/Test Audio/Noise"
+    # "J:/Dropbox/Muziek/Samples/Created/Test Audio/", "J:/Dropbox/Muziek/Samples/Created/Test Audio/Sine"
+    ff = FileFinder.FileFinder([dropboxFolder+"Muziek/Samples/", mainFolder+"Musicradar Realworld Drum Samples/", mainFolder+"Pro Tools Samples/", mainFolder+"808s_by_SHD", mainFolder+"Eigen Samples", mainFolder+"Timbales", mainFolder+"Ultimate Production Toolbox V1", mainFolder+"Cloudstorm Samples - Free Drums V1", mainFolder+"Drums Of War Samples", mainFolder+"Pro Tools Samples", mainFolder+"PrimeLoops DrumSamplesTaster 2012", mainFolder+"GSCW DRUMS Library Vol.1", mainFolder+"Ethnic Percussion/"])
+    #    , "J:/BackUp/17-09-11 Audio - Samples/Samples/Hip-Hop/"
+    #    , "J:/BackUp/17-09-11 Audio - Samples/Samples/Pro Tools Samples/"
+    #
+    #    , "J:/BackUp/17-09-11 Audio - Samples/Samples/Musicradar Realworld Drum Samples/"
+    # ])
+
+    states = []
+    totalSizeRead = 0
+
+    # SEARCH FOR FILE IN STATE, identifier is used to make sure the state has the same encoding
+    weigths = [3, 5, 5, 3, 3, 10, 2, 1, 3, 2, 3, 12.5, 12.5, 2, 25, 25, 500000]
+    for i in range(len(weigths)):
+        weigths[i] *= 0.1
+    # weigths = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
+    for i in range(len(weigths)):
+        GUI.my_gui.createWeigthWidget(dataNames[i], weigths, i)
+
+    identifier = """sub = af.getMagnitudeForFrequencyRange(20, 100)
+            punch = af.getMagnitudeForFrequencyRange(100, 300)
+            lowmid = af.getMagnitudeForFrequencyRange(300, 500)
+            mid = af.getMagnitudeForFrequencyRange(500, 1000)
+            highmid = af.getMagnitudeForFrequencyRange(1000, 2000)
+            highs = af.getMagnitudeForFrequencyRange(2000, 20000)
+            duration = (af.duration / 100)**0.5
+            median = af.getMedianAmp()
+            average = af.getAverageAmp()
+            spatialness = af.getSpatialness()
+            devOverTimeShort = af.getTransientAmount(0.01)
+            devOverTime2 = af.getTransientAmount(0.3333)
+            devOverTime = af.getTransientAmount(0.1)
+            devOverTimeLong = af.getTransientAmount(1)
+            dynamicsLong = af.getDynamics(0.5)
+            dynamicsShort = af.getDynamics(0.06)
+            loudestFreq = af.getLoudestFreq()"""
+
+    print("\n<---------------------------------------------------------------------------------------------------->\n")
+    print("Loading saved states:")
+
     # load all states from state file
     f_r = None
     loadedStates = None
@@ -59,63 +112,14 @@ def main():
                     loadedStates[len(loadedStates) - 1][1][j] = float(loadedStates[len(loadedStates) - 1][1][j])
         print("Amount of states found: ", len(loadedStates))
 
-
-    # SELECT FOLDER TO SEARCH FROM FOR AUDIO FILES
-    # J:/Dropbox/Muziek/Samples/Created/Overige/
-    # J:/Dropbox/Muziek/Samples/
-    # "J:/BackUp/17-09-11 Audio - Samples/Samples/Pro Tools Samples/"
-    # "C:\\Program Files (x86)\\Image-Line\\FL Studio 11\\Data\\Patches\\Packs\\"
-    # "J:\\BackUp\\17-09-11 Audio - Samples\\Samples\\Hip-Hop\\ArtyTorrent Pack 44-Hip Hop Drum Loops 100-109 bpm-WAV samples\\"
-    # "J:\\Dropbox\\Muziek\\Samples\\Created\\Overige\\"
-    # "J:\\BackUp\\17-09-11 Audio - Samples\\Samples\\Ethnic Percussion\\"
-    # "J:\\BackUp\\17-09-11 Audio - Samples\\Samples\\Musicradar Realworld Drum Samples\\"
-    # "J:\\Dropbox\\Muziek\\Samples\\Created\\Test Audio\\Noise"
-    # "J:\\Dropbox\\Muziek\\Samples\\Created\\Test Audio\\", "J:\\Dropbox\\Muziek\\Samples\\Created\\Test Audio\\Sine"
-    ff = FileFinder.FileFinder(["J:\\Dropbox\\Muziek\\Samples\\", "J:\\BackUp\\17-09-11 Audio - Samples\\Samples\\Musicradar Realworld Drum Samples\\", "J:/BackUp/17-09-11 Audio - Samples/Samples/Pro Tools Samples/", "J:/BackUp/17-09-11 Audio - Samples/Samples/808s_by_SHD", "J:/BackUp/17-09-11 Audio - Samples/Samples/Eigen Samples", "J:/BackUp/17-09-11 Audio - Samples/Samples/Timbales", "J:/BackUp/17-09-11 Audio - Samples/Samples/Ultimate Production Toolbox V1", "J:/BackUp/17-09-11 Audio - Samples/Samples/Cloudstorm Samples - Free Drums V1", "J:/BackUp/17-09-11 Audio - Samples/Samples/Drums Of War Samples", "J:/BackUp/17-09-11 Audio - Samples/Samples/Pro Tools Samples", "J:/BackUp/17-09-11 Audio - Samples/Samples/PrimeLoops DrumSamplesTaster 2012", "J:/BackUp/17-09-11 Audio - Samples/Samples/GSCW DRUMS Library Vol.1", "J:\\BackUp\\17-09-11 Audio - Samples\\Samples\\Ethnic Percussion\\"])
-    #    , "J:\\BackUp\\17-09-11 Audio - Samples\\Samples\\Hip-Hop\\"
-    #    , "J:/BackUp/17-09-11 Audio - Samples/Samples/Pro Tools Samples/"
-    #
-    #    , "J:\\BackUp\\17-09-11 Audio - Samples\\Samples\\Musicradar Realworld Drum Samples\\"
-    # ])
-
-    afStates = []
-    totalSizeRead = 0
-
-    # SEARCH FOR FILE IN STATE, identifier is used to make sure the state has the same encoding
-    weigths = [3, 5, 5, 3, 3, 10, 2, 1, 3, 2, 3, 12.5, 12.5, 2, 25, 25, 50]
-    for i in range(len(weigths)):
-        weigths[i] *= 10
-    # weigths = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-
-    identifier = """sub = af.getMagnitudeForFrequencyRange(20, 100)
-            punch = af.getMagnitudeForFrequencyRange(100, 300)
-            lowmid = af.getMagnitudeForFrequencyRange(300, 500)
-            mid = af.getMagnitudeForFrequencyRange(500, 1000)
-            highmid = af.getMagnitudeForFrequencyRange(1000, 2000)
-            highs = af.getMagnitudeForFrequencyRange(2000, 20000)
-            duration = (af.duration / 100)**0.5
-            median = af.getMedianAmp()
-            average = af.getAverageAmp()
-            spatialness = af.getSpatialness()
-            devOverTimeShort = af.getTransientAmount(0.01)
-            devOverTime2 = af.getTransientAmount(0.3333)
-            devOverTime = af.getTransientAmount(0.1)
-            devOverTimeLong = af.getTransientAmount(1)
-            dynamicsLong = af.getDynamics(0.5)
-            dynamicsShort = af.getDynamics(0.06)
-            loudestFreq = af.getLoudestFreq()"""
-
-    stateFound = False
     numStatesFound = 0
-    for j in range(len(ff.audiofiles)):
-        af = ff.audiofiles[j]
+    for af in ff.audiofiles:
         if loadedStates is not None:
-            for i in loadedStates:
-                if i[0] == af.path and i[2] == identifier and af.stateLoaded is False:
+            for s in loadedStates:
+                if s[0] == af.path and s[2] == identifier and af.stateLoaded is False:
                     if DEBUG:
-                        print("stateFound: ", af.path, "\t wuth:", i[1])
-                    afState = [af.path, i[1]]
-                    afStates.append(afState)
+                        print("stateFound: ", af.path, "\t wuth:", s[1])
+                    states.append( [ af.path, s[1] ] )
                     totalSizeRead += af.size
                     af.stateLoaded = True
                     numStatesFound += 1
@@ -123,7 +127,10 @@ def main():
                         # print("\tafstates:", afStates)
                         print("state loaded")
     if loadedStates is not None:
-        print("all saved states loaded:", numStatesFound)
+        print("\tall saved states loaded:", numStatesFound)
+
+    print("\n<---------------------------------------------------------------------------------------------------->\n")
+
 
     # GO THROUGH ALL AUDIOFILES FOUND, Either load from state, or calculate parameters and add to state
     print("Analyzing remaining audiofiles")
@@ -134,7 +141,7 @@ def main():
         # generate state for current audio file
         # shorter then 5 seconds
         if af.stateLoaded is False and af.duration <= 15:
-            afState = [af.path]
+            newState = [af.path]
 
             if DEBUG or count % int(0.125*len(ff.audiofiles)) == 0:
                 print("Starting with file: " + af.path)
@@ -174,15 +181,24 @@ def main():
             dynamicsShort = af.getDynamics(0.06)
             loudestFreq = af.getLoudestFrequency()
             # -> ParameterSet class maken met identifier in zich
+                # ParameterSet {
+                #   ParameterSet(params, values,shouldSaveState=False, stateID="") ->  fill "set" struct and check if state should be saved to disk.
+                #   struct set {
+                #       string[] parameters
+                #       string identifier (parameters as single string + stateID)
+                #       float[] values
+                #   }
+                # }
 
             parameters = [sub, punch, lowmid, mid, highmid, highs, duration, median, average, spatialness, devOverTimeShort, devOverTime, devOverTime2, devOverTimeLong, dynamicsLong, dynamicsShort, loudestFreq]
 
+            # check if range is 0-1
             for j in range(len(parameters)):
                 if parameters[j] > 1 or parameters[j] < 0:
                     print("WARNING: Par out of range:", dataNames[j], parameters[j])
 
-            afState.append(parameters)
-            afStates.append(afState)
+            newState = [af.path, parameters]
+            states.append(newState)
 
             f_a = open("states", "a+")
             f_a.write("?"+af.path+"|"+
@@ -195,13 +211,15 @@ def main():
             af.stateLoaded = True
 
             if DEBUG or count % int(0.125*len(ff.audiofiles)) == 0:
-                print(afState)
+                print(newState)
                 print()
+
                 af.freeMem()
                 gc.collect()
 
                 print("\n<------------------------------------------------->")
-                print("STATUS: ", 100 * totalSizeRead / ff.sizeOfAudiofiles, "%")
+                print("STATUS: ", 100 * totalSizeRead / ff.sizeOfAudiofiles, "%", end="")
+                print("\t files read:", i, "of total num files:", len(ff.audiofiles))
                 GUI.my_gui.label['text'] = str(100 * totalSizeRead / ff.sizeOfAudiofiles) + "%" #werkt niet omdat gui achteraf pas wordt gebouwd :)
                 print("<------------------------------------------------->\n")
 
@@ -209,29 +227,34 @@ def main():
     # EUCLIDEAN DISTANCES
 
     # create a list for calculating the euclidean distances (which holds only points)
+
+
     eucDistanceList = []
-    for state in afStates:
-        point = []
-        for i in range(len(state[1])):
-            point.append(state[1][i] * float(weigths[i]))
-        # print(state[0], "\n\t", end="")
-        # printDataArray(state[1])
-        # print("\t", end="")
-        # printDataArray(point)
-        # print()
-        eucDistanceList.append(point)
+
+    def calcEuclideanDistanceList(eucDistanceList, states, weigths):
+        del eucDistanceList[:]
+        for s in states:
+            point = []
+            for i in range( len( s[1] ) ):
+                point.append( float(weigths[i]) * s[1][i] )
+            # print(state[0], "\n\t", end="")
+            # printDataArray(state[1])
+            # print("\t", end="")
+            # printDataArray(point)
+            # print()
+            eucDistanceList.append( point )
 
     # CREATE GUI CALLBACK, which will select a random audio file, and look for the most similar content.
     def guiNewAudioFiles():
         d = dataNames
         print(d)
 
-        randint = random.randint(0, len(afStates))
+        randint = random.randint( 0, len(states) )
         print("selected audiofile", randint)
-        print(afStates[randint][0])
-        s = afStates[randint][1]
+        print( states[randint][0] )
+        s = states[randint][1]
         point = []
-        for i in range(len(s)):
+        for i in range( len(s) ):
             # temporarally change values to see if lookup works
             # if d[i] == "spatialness":
             #     point.append(1.0 * float(weigths[i]))
@@ -242,23 +265,24 @@ def main():
         print("\t", end="")
         printDataArray(point)
         print()
-        GUI.my_gui.currentSample = afStates[randint][0]
+        GUI.my_gui.currentSample = states[randint][0]
         GUI.my_gui.w['text'] = GUI.my_gui.currentSample
         GUI.my_gui.play()
 
+        calcEuclideanDistanceList(eucDistanceList, states, weigths)
         closestPoints = EuclideanDistance.getPointIndicesSortedByClosest(point, eucDistanceList)
         GUI.my_gui.samplesSimilar = []
         GUI.my_gui.popupMenu['menu'].delete(0, 'end')
 
-        for j in range(min(len(afStates), 20)):
-            file = afStates[closestPoints[j]][0]
+        for j in range(min(len(states), 20)):
+            file = states[closestPoints[j]][0]
             print("\t", file)
 
             print("\t", end="")
             point = []
-            s = afStates[closestPoints[j]][1]
+            s = states[closestPoints[j]][1]
             for i in range(len(s)):
-                point.append(s[i] * float(weigths[i]))
+                point.append( float(weigths[i]) * s[i] )
             print("\t", end="")
             printDataArray(point)
 

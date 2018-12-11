@@ -8,12 +8,16 @@ def printMDArray(mdArray):
 
 
 def getEuclidianDistance(coord1, coord2):
+    # print(coord1, "\n", coord2)
     numDimensions = len(coord1)
     eucDist = 0
 
     for i in range(numDimensions):
         eucDist += pow((coord1[i] - coord2[i]), 2.0)
+        # print("adding values to eucDist:", eucDist)
+
     eucDist = math.sqrt(eucDist)
+    # print("after sqrt:", eucDist)
 
     return eucDist
 
@@ -86,7 +90,7 @@ def getPointIndicesSortedByClosest(coord, coords):
         if coord is not co:
             distances.append( getEuclidianDistance(coord, co) )
         else:
-            distances.append( sys.float_info.max )
+            distances.append( 1000000000 )
 
     closestPoints = []
 
@@ -97,8 +101,9 @@ def getPointIndicesSortedByClosest(coord, coords):
     for i in range(len(coords)):
         closestPoint = min( range( len(distances) ), key=distances.__getitem__ )
         closestPoints.append(closestPoint)
-        distances[closestPoint] = sys.float_info.max
+        # print(distances[closestPoint])
+        distances[closestPoint] = 1000000000
 
-    print(closestPoints)
+    # print(closestPoints)
 
     return closestPoints

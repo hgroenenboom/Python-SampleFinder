@@ -3,8 +3,12 @@ import soundfile as sf
 import numpy as np
 import pyfftw
 import math
+from threading import Thread
 
 DEBUG = False
+
+# TODO
+# - delete silence from end and from start
 
 class AudioFile:
     extension = ""

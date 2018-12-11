@@ -1,17 +1,19 @@
-from tkinter import Tk, Label, Button, StringVar, OptionMenu, Frame
+from tkinter import Tk, Label, Button, StringVar, OptionMenu, Frame, Entry, END
 import tkinter as tk
 import subprocess
 import os
 import winsound
+from threading import Thread
 
 class MyGUI:
     currentSample = ""
     samplesSimilar = [ "swag", "lol" ]
+    back = None
 
     def __init__(self, master):
         self.master = master
         master.title("A simple GUI")
-        master.geometry("800x500")  # You want the size of the app to be 500x500
+        master.geometry("1000x1000")  # You want the size of the app to be 500x500
         #master.resizable(0, 0)  # Don't allow resizing in the x or y direction
         master.option_add("*Button.Background", "black")
         master.option_add("*Button.Foreground", "red")
@@ -19,6 +21,7 @@ class MyGUI:
         back = Frame(master=master, bg='blue')
         back.pack_propagate(0) # dont allow widgets to resize frame
         back.pack(fill=tk.BOTH, expand=1)
+        self.back = back
 
         self.label = Label(back, text="This is our first GUI!")
         self.label.pack()
@@ -66,7 +69,19 @@ class MyGUI:
             self.play2()
 
     def playSample(self, file):
-        winsound.PlaySound(file, winsound.SND_FILENAME)
+        thread = Thread(target=lambda f=file: winsound.PlaySound(f, winsound.SND_FILENAME), args=(file,))
+        thread.start()
+
+    def createWeigthWidget(self, text, weights, index):
+        entry = Entry(self.back)
+        def setToWeight(e):
+            weights[index] = float(entry.get())
+
+        self.label = Label(self.back, text=text)
+        self.label.pack()
+        entry.bind("<Return>", setToWeight)
+        entry.insert( END, weights[index] )
+        entry.pack()
 
 root = Tk()
 my_gui = MyGUI(root)
