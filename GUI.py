@@ -5,16 +5,23 @@ import os
 import winsound
 from threading import Thread
 import random
+import simpleaudio as sa
+import simpleaudio.functionchecks as fc
+import numpy as np
+import time
 
 class MyGUI:
-    currentSample = ""
-    samplesSimilar = [ "swag", "lol" ]
+    currentAudioFile = ""
+    similarAudioFiles = ["swag", "lol"]
     back = None
     f = None
     paramEntrys = None
 
     def __init__(self, master):
         self.master = master
+
+        # fc.LeftRightCheck.run()
+
         master.title("A simple GUI")
         master.geometry("1000x1000")  # You want the size of the app to be 500x500
         #master.resizable(0, 0)  # Don't allow resizing in the x or y direction
@@ -41,8 +48,8 @@ class MyGUI:
 
 
         self.dropdownVar = StringVar()
-        self.dropdownVar.set(self.samplesSimilar[0])
-        self.popupMenu = OptionMenu(back, self.dropdownVar, *self.samplesSimilar)
+        self.dropdownVar.set(self.similarAudioFiles[0])
+        self.popupMenu = OptionMenu(back, self.dropdownVar, *self.similarAudioFiles)
         self.popmenLabel = Label(back, text="Choose similar sample")
         self.popmenLabel.pack()
         self.popupMenu.pack()
@@ -56,14 +63,37 @@ class MyGUI:
 
     def playMultiple(self):
         self.play()
+        time.sleep(self.currentAudioFile.duration)
         for i in range(5):
-            self.playSample(self.samplesSimilar[i])
+            self.playSample(self.similarAudioFiles[i])
+            time.sleep(self.similarAudioFiles[i].duration)
 
     def play(self):
-        self.playSample(self.currentSample)
+        self.playSample(self.currentAudioFile)
 
     def play2(self):
-        self.playSample(self.dropdownVar.get())
+        af = None
+        for i in range( len(self.similarAudioFiles) ):
+            if self.similarAudioFiles[i].path == self.dropdownVar.get():
+                af = self.similarAudioFiles[i]
+        self.playSample( af )
+
+    def playSample(self, audiofileObj):
+        def p(f):
+            # print(f)
+            f.load()
+            b = f.getBuffer().copy()
+            b *= 32767
+            b = b.astype( np.int16 )
+
+            print(f.channels)
+            print(b.shape)
+            wave_obj = sa.WaveObject(b, f.channels, 2, f.samplerate)
+            play_obj = wave_obj.play()
+            play_obj.wait_done()
+        thread = Thread(target=lambda f=audiofileObj: p(f), args=(audiofileObj,))
+        # thread = Thread(target=lambda f=audiofileObj: winsound.PlaySound(f[0], winsound.SND_FILENAME), args=(audiofileObj,))
+        thread.start()
 
     def change_dropdown(self, *args):
         print("change dropdown")
@@ -77,10 +107,6 @@ class MyGUI:
         if string is not self.dropdownVar.get():
             self.dropdownVar.set(string)
             self.play2()
-
-    def playSample(self, file):
-        thread = Thread(target=lambda f=file: winsound.PlaySound(f, winsound.SND_FILENAME), args=(file,))
-        thread.start()
 
     def createWeigthWidget(self, text, weights, index):
         if(self.f is None):

@@ -3,7 +3,6 @@ import GUI
 import gc
 import EuclideanDistance
 import random
-import AudioFile
 import os
 
 import numpy as np
@@ -57,10 +56,10 @@ def main():
     totalSizeRead = 0
 
     # SEARCH FOR FILE IN STATE, identifier is used to make sure the state has the same encoding
-    weigths = [500000/3, 500000/3, 500000/3, 3, 3, 10, 2, 1, 500000/3, 2, 3, 12.5, 12.5, 2, 500000, 500000, 500000]
+    weigths = [500000/10, 500000/10, 500000/10, 500000/10, 500000/10, 500000/2, 500000, 1, 500000/3, 2, 3, 12.5, 12.5, 2, 500000, 500000, 500000]
     for i in range(len(weigths)):
         weigths[i] *= 0.1
-    weigths = [1, 1, 1, 1, 1, 1, 10000, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    # weigths = [1, 1, 1, 1, 1, 1, 10000, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     # weigths = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
     for i in range(len(weigths)):
@@ -122,7 +121,7 @@ def main():
                 if s[0] == af.path and s[2] == identifier and af.stateLoaded is False:
                     if DEBUG:
                         print("stateFound: ", af.path, "\t with:", s[1])
-                    states.append( [ af.path, s[1] ] )
+                    states.append( [ af.path, s[1], af ] )
                     totalSizeRead += af._size
                     af.stateLoaded = True
                     numStatesFound += 1
@@ -206,7 +205,7 @@ def main():
                 if parameters[j] > 1 or parameters[j] < 0:
                     print("WARNING: Par out of range:", dataNames[j], parameters[j])
 
-            newState = [af.path, parameters]
+            newState = [af.path, parameters, af]
             states.append(newState)
 
             f_a = open("states", "a+")
@@ -261,52 +260,55 @@ def main():
         randint = random.randint( 0, len(states) )
         print("selected audiofile", randint)
         print( states[randint][0] )
-        s = states[randint][1]
+        data = states[randint][1]
         point = []
-        for i in range( len(s) ):
+        for i in range( len(data) ):
             # temporarally change values to see if lookup works
             # if d[i] == "spatialness":
             #     point.append(1.0 * float(weigths[i]))
             # elif d[i] == "loudestFreq":
             #     point.append(0.2+0.5*s[i] * float(weigths[i]))
             # else:
-            point.append(s[i] * float(weigths[i]))
+            point.append(data[i] * float(weigths[i]))
         print("\t", end="")
         printDataArray(point)
         print()
         # GUI.my_gui.createParameterEntrys(dataNames, point)
 
-        GUI.my_gui.currentSample = states[randint][0]
-        GUI.my_gui.w['text'] = GUI.my_gui.currentSample
-        GUI.my_gui.play()
+        GUI.my_gui.currentAudioFile = states[randint][2]
+        GUI.my_gui.w['text'] = GUI.my_gui.currentAudioFile.path
+        # GUI.my_gui.play()
 
         calcEuclideanDistanceList(eucDistanceList, states, weigths)
         closestPoints = EuclideanDistance.getPointIndicesSortedByClosest(point, eucDistanceList)
-        GUI.my_gui.samplesSimilar = []
+        GUI.my_gui.similarAudioFiles = []
         GUI.my_gui.popupMenu['menu'].delete(0, 'end')
 
+        # add similar samples to GUI
         for j in range(min(len(states), 20)):
-            file = states[closestPoints[j]][0]
-            print("\t", file)
+            s = states[closestPoints[j]]
+            print("\t", s[0])
 
             print("\t", end="")
             point = []
-            s = states[closestPoints[j]][1]
-            for i in range(len(s)):
-                point.append( float(weigths[i]) * s[i] )
+            data = states[closestPoints[j]][1]
+            for i in range(len(data)):
+                point.append( float(weigths[i]) * data[i] )
             print("\t", end="")
             printDataArray(point)
 
-            GUI.my_gui.samplesSimilar.append(file)
+            GUI.my_gui.similarAudioFiles.append(s[2])
             # GUI.my_gui.popupMenu['menu'].add_command(label=file, command=GUI.my_gui.dropdownVar)
 
-        for i in range(len(GUI.my_gui.samplesSimilar)):
-            string = GUI.my_gui.samplesSimilar[i]
+        for i in range(len(GUI.my_gui.similarAudioFiles)):
+            string = GUI.my_gui.similarAudioFiles[i].path
             GUI.my_gui.popupMenu['menu'].add_command(label=string,
                                                      command=lambda value=string:
                                                      GUI.my_gui.set_dropdown(value))
-            if i < 5:
-                GUI.my_gui.playSample(string)
+            # instantly play sample
+            # if i < 5:
+            #     GUI.my_gui.playSample(GUI.my_gui.similarAudioFiles[i])
+        GUI.my_gui.playMultiple()
         print("\n")
 
     print("Finished loading!")
