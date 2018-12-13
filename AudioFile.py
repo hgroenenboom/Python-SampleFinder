@@ -9,16 +9,19 @@ DEBUG = False
 
 # TODO
 # - delete silence from end and from start
+# - seperate to audio file and analyzable audio file
 
 class AudioFile:
-    extension = ""
-    size = 0
+    _extension = ""
+    _size = 0
     path = ""
+    abspath = ""
     soundfile = None
     channels = 0
     duration = 0
     numSamples = 0
 
+    # private. DONT EDIT FROM OUTSIDE
     buffer = None
     fft = None
     magFft = None
@@ -28,18 +31,30 @@ class AudioFile:
     stateLoaded = False
 
     def __init__(self, file):
+        if DEBUG:
+            print("loading audiofile:", file)
+
         if(os.path.exists(file)):
-            self.extension = os.path.splitext(file)
-            self.size = os.path.getsize(file)
+            self._extension = os.path.splitext(file)
+            self._size = os.path.getsize(file)
             self.path = file
-            self.channels = sf.info(file).channels
-            self.duration = sf.info(file).duration
-            self.numSamples = sf.info(file).frames
-            self.samplerate = sf.info(file).samplerate
+            self.abspath = os.path.abspath(file)
+
+            info = sf.info(file)
+            self.channels = info.channels
+            self.duration = info.duration
+            self.numSamples = info.frames
+            self.samplerate = info.samplerate
         else:
             print("Error file not found")
 
-    def getWaveFile(self):
+    def load(self):
+        if DEBUG:
+            print("loading file:", self.path)
+        self._getWaveFile()
+        self._stripSilence()
+
+    def _getWaveFile(self):
         # wavefile = wave.open(file)
         if self.soundfile is None:
             self.soundfile = sf.SoundFile(self.path)
@@ -49,8 +64,47 @@ class AudioFile:
                 print("Buffer max:", np.max(self.buffer))
                 print("Buffer min:", np.min(self.buffer))
 
-    def getFFT(self):
-        self.getWaveFile()
+    def _stripSilence(self):
+        # Get minimum amplitude to apply silence removal
+        # min = np.min(np.abs(self.buffer))
+        # ampOfminus40dB = self.getDBFs(min)
+        # if ampOfminus40dB
+        min = 0.001  # -60dBFs
+
+        # get end frame of start noise
+        foundNonNoiseAmplitude = False
+        indexOfFoundSample = 0
+        for i in range(len(self.buffer)):
+            if not foundNonNoiseAmplitude:
+                if abs(np.mean(self.buffer[i])) < 2 * min:
+                    indexOfFoundSample = i
+                else:
+                    foundNonNoiseAmplitude = True
+                    self.buffer = self.buffer[indexOfFoundSample:]
+        self.numSamples = len(self.buffer)
+
+        # get start frame of end noise
+        foundNonNoiseAmplitude = False
+        indexOfFoundSample = len(self.buffer) - 1
+        for i in range(len(self.buffer)):
+            j = len(self.buffer) - i - 1
+            if not foundNonNoiseAmplitude:
+                # print("amp at", j, " is", np.mean(self.buffer[j]))
+                if abs(np.mean(self.buffer[j])) < 2 * min:
+                    indexOfFoundSample = j
+                else:
+                    foundNonNoiseAmplitude = True
+
+        # Set new buffer length without end noise
+        self.buffer = self.buffer[:indexOfFoundSample]
+        self.numSamples = len(self.buffer)
+        self.duration = self.numSamples / float(self.samplerate)
+
+    def _getDBFs(self, value):
+        return 20 * math.log10( abs(value) )
+
+    def _getFFT(self):
+        self._getWaveFile()
 
         if self.fft is None:
             buffer = self.buffer
@@ -66,12 +120,12 @@ class AudioFile:
 
         return self.fft
 
-    def getFFTMagnitudes(self):
-        self.getWaveFile()
+    def _getFFTMagnitudes(self):
+        self._getWaveFile()
 
         if self.magFft is None:
             #self.magFft = np.divide(self.getFFT(), self.numSamples) # normal normalization, doesn't work with MD arrays (stereo) -> created weird normalization :P
-            fft = self.getFFT()
+            fft = self._getFFT()
 
             if self.channels == 1:
                 self.magFft = np.absolute(fft)
@@ -114,9 +168,9 @@ class AudioFile:
         return self.monoMagFft
 
     def getMagnitudeForFrequencyRange(self, low, high):
-        self.getWaveFile()
+        self._getWaveFile()
 
-        self.monoMagFft = self.getFFTMagnitudes()
+        self.monoMagFft = self._getFFTMagnitudes()
 
         # clip input
         low = min(0.5*self.samplerate, max(low, 0))
@@ -128,13 +182,13 @@ class AudioFile:
 
         magForFreqRange = np.sum( self.monoMagFft[lowestbin:highestbin] )
 
-        return self.sigmoid(magForFreqRange)
+        return self._sigmoid(magForFreqRange)
 
     def getDCOffset(self):
         return np.mean(self.buffer)
 
     def getAverageAmp(self):
-        self.getWaveFile()
+        self._getWaveFile()
 
         averageAmp = np.abs( self.buffer )
         averageAmp = np.mean( averageAmp )
@@ -147,14 +201,16 @@ class AudioFile:
         return pow( averageAmp, 0.5 )
 
     def getSigmoidDuration(self):
-        return self.sigmoid(self.duration)
+        return self._sigmoid(self.duration)
 
     def getMedianAmp(self):
-        self.getWaveFile()
+        self._getWaveFile()
 
         return pow( np.median( np.abs(self.buffer) ), 0.5)
 
     def freeMem(self):
+        # Call this function to make sure memory is freed when the object is not used anymore
+
         if self.soundfile is not None:
             del self.soundfile
         if self.buffer is not None:
@@ -184,7 +240,7 @@ class AudioFile:
             spatialness = spatialness / self.getAverageAmp()
 
         # print(spatialness)
-        return self.sigmoid(spatialness)
+        return self._sigmoid(spatialness)
 
     def getTransientAmount(self, seconds):
         numsteps = math.ceil(self.duration / seconds)
@@ -206,7 +262,7 @@ class AudioFile:
 
         amountOfMovement = amountOfMovement / len(energyPerMoment)
 
-        return self.sigmoid(amountOfMovement)
+        return self._sigmoid(amountOfMovement)
 
     def getDynamics(self, seconds):
         numsteps = math.ceil(self.duration / seconds)
@@ -230,10 +286,10 @@ class AudioFile:
 
                 dynamic = dynamic / len(energyPerMoment)
 
-        return self.sigmoid(dynamic / seconds)
+        return self._sigmoid(dynamic / seconds)
 
     def getLoudestFrequency(self):
-        self.getFFTMagnitudes()
+        self._getFFTMagnitudes()
 
         if self.monoMagFft is not None:
             if DEBUG:
@@ -248,5 +304,5 @@ class AudioFile:
 
             return pow(freq, 0.5)
 
-    def sigmoid(self, val):
+    def _sigmoid(self, val):
         return val / (1 + abs(val))

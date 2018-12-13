@@ -46,7 +46,7 @@ def main():
     # "J:/BackUp/17-09-11 Audio - Samples/Samples/Musicradar Realworld Drum Samples/"
     # "J:/Dropbox/Muziek/Samples/Created/Test Audio/Noise"
     # "J:/Dropbox/Muziek/Samples/Created/Test Audio/", "J:/Dropbox/Muziek/Samples/Created/Test Audio/Sine"
-    ff = FileFinder.FileFinder([dropboxFolder+"Muziek/Samples/", mainFolder+"Musicradar Realworld Drum Samples/", mainFolder+"Pro Tools Samples/", mainFolder+"808s_by_SHD", mainFolder+"Eigen Samples", mainFolder+"Timbales", mainFolder+"Ultimate Production Toolbox V1", mainFolder+"Cloudstorm Samples - Free Drums V1", mainFolder+"Drums Of War Samples", mainFolder+"Pro Tools Samples", mainFolder+"PrimeLoops DrumSamplesTaster 2012", mainFolder+"GSCW DRUMS Library Vol.1", mainFolder+"Ethnic Percussion/"])
+    ff = FileFinder.FileFinder([dropboxFolder+"Muziek/Samples/", dropboxFolder+"Muziek/Samples/", mainFolder+"Musicradar Realworld Drum Samples/", mainFolder+"Pro Tools Samples/", mainFolder+"808s_by_SHD", mainFolder+"Eigen Samples", mainFolder+"Timbales", mainFolder+"Ultimate Production Toolbox V1", mainFolder+"Cloudstorm Samples - Free Drums V1", mainFolder+"Drums Of War Samples", mainFolder+"Pro Tools Samples", mainFolder+"PrimeLoops DrumSamplesTaster 2012", mainFolder+"GSCW DRUMS Library Vol.1", mainFolder+"Ethnic Percussion/"])
     #    , "J:/BackUp/17-09-11 Audio - Samples/Samples/Hip-Hop/"
     #    , "J:/BackUp/17-09-11 Audio - Samples/Samples/Pro Tools Samples/"
     #
@@ -57,9 +57,10 @@ def main():
     totalSizeRead = 0
 
     # SEARCH FOR FILE IN STATE, identifier is used to make sure the state has the same encoding
-    weigths = [3, 5, 5, 3, 3, 10, 2, 1, 3, 2, 3, 12.5, 12.5, 2, 25, 25, 500000]
+    weigths = [500000/3, 500000/3, 500000/3, 3, 3, 10, 2, 1, 500000/3, 2, 3, 12.5, 12.5, 2, 500000, 500000, 500000]
     for i in range(len(weigths)):
         weigths[i] *= 0.1
+    weigths = [1, 1, 1, 1, 1, 1, 10000, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     # weigths = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
     for i in range(len(weigths)):
@@ -111,6 +112,8 @@ def main():
                 for j in range(len(loadedStates[len(loadedStates) - 1][1])):
                     loadedStates[len(loadedStates) - 1][1][j] = float(loadedStates[len(loadedStates) - 1][1][j])
         print("Amount of states found: ", len(loadedStates))
+    else:
+        print("\tStates not yet created!")
 
     numStatesFound = 0
     for af in ff.audiofiles:
@@ -118,9 +121,9 @@ def main():
             for s in loadedStates:
                 if s[0] == af.path and s[2] == identifier and af.stateLoaded is False:
                     if DEBUG:
-                        print("stateFound: ", af.path, "\t wuth:", s[1])
+                        print("stateFound: ", af.path, "\t with:", s[1])
                     states.append( [ af.path, s[1] ] )
-                    totalSizeRead += af.size
+                    totalSizeRead += af._size
                     af.stateLoaded = True
                     numStatesFound += 1
                     if DEBUG:
@@ -133,14 +136,16 @@ def main():
 
 
     # GO THROUGH ALL AUDIOFILES FOUND, Either load from state, or calculate parameters and add to state
-    print("Analyzing remaining audiofiles")
+    print("Analyzing remaining audiofiles:", len(ff.audiofiles))
     for i in range(len(ff.audiofiles)):
         af = ff.audiofiles[i]
 
         # IF STATE IS NOT FOUND
         # generate state for current audio file
         # shorter then 5 seconds
-        if af.stateLoaded is False and af.duration <= 15:
+        if af.stateLoaded is False:
+            af.load()
+        if af.stateLoaded is False and af.duration <= 15 and af.duration >= 0.001:
             newState = [af.path]
 
             if DEBUG or count % int(0.125*len(ff.audiofiles)) == 0:
@@ -180,6 +185,7 @@ def main():
             dynamicsLong = af.getDynamics(0.5)
             dynamicsShort = af.getDynamics(0.06)
             loudestFreq = af.getLoudestFrequency()
+            # TODO
             # -> ParameterSet class maken met identifier in zich
                 # ParameterSet {
                 #   ParameterSet(params, values,shouldSaveState=False, stateID="") ->  fill "set" struct and check if state should be saved to disk.
@@ -189,6 +195,9 @@ def main():
                 #       float[] values
                 #   }
                 # }
+            # create special parameters which check time similarity by using euclidean distance over dynamics. (creates heavy load!)
+                # option 1: save time similarity point inside a point (i.e. [param, param, [time1, time2, time3], param]
+                #   then let euclidean distance check subarrays first for euclidean distance.
 
             parameters = [sub, punch, lowmid, mid, highmid, highs, duration, median, average, spatialness, devOverTimeShort, devOverTime, devOverTime2, devOverTimeLong, dynamicsLong, dynamicsShort, loudestFreq]
 
@@ -206,7 +215,7 @@ def main():
                       identifier)
             f_a.close()
 
-            totalSizeRead += af.size
+            totalSizeRead += af._size
             count = count + 1
             af.stateLoaded = True
 
@@ -265,6 +274,8 @@ def main():
         print("\t", end="")
         printDataArray(point)
         print()
+        # GUI.my_gui.createParameterEntrys(dataNames, point)
+
         GUI.my_gui.currentSample = states[randint][0]
         GUI.my_gui.w['text'] = GUI.my_gui.currentSample
         GUI.my_gui.play()
@@ -289,11 +300,16 @@ def main():
             GUI.my_gui.samplesSimilar.append(file)
             # GUI.my_gui.popupMenu['menu'].add_command(label=file, command=GUI.my_gui.dropdownVar)
 
-        for string in GUI.my_gui.samplesSimilar:
+        for i in range(len(GUI.my_gui.samplesSimilar)):
+            string = GUI.my_gui.samplesSimilar[i]
             GUI.my_gui.popupMenu['menu'].add_command(label=string,
                                                      command=lambda value=string:
                                                      GUI.my_gui.set_dropdown(value))
+            if i < 5:
+                GUI.my_gui.playSample(string)
         print("\n")
+
+    print("Finished loading!")
 
     # ADD CALLBACK TO GUI, and start gui loop
     GUI.my_gui.greet_button['command'] = guiNewAudioFiles
