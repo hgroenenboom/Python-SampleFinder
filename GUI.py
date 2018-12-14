@@ -1,12 +1,9 @@
 from tkinter import Tk, Label, Button, StringVar, OptionMenu, Frame, Entry, END, LEFT, TOP
 import tkinter as tk
-import subprocess
-import os
 import winsound
 from threading import Thread
 import random
 import simpleaudio as sa
-import simpleaudio.functionchecks as fc
 import numpy as np
 import time
 
@@ -20,6 +17,7 @@ class MyGUI:
     def __init__(self, master):
         self.master = master
 
+        # import simpleaudio.functionchecks as fc
         # fc.LeftRightCheck.run()
 
         master.title("A simple GUI")
@@ -86,13 +84,13 @@ class MyGUI:
             b *= 32767
             b = b.astype( np.int16 )
 
-            print(f.channels)
-            print(b.shape)
+            # print(f.channels)
+            # print(b.shape)
             wave_obj = sa.WaveObject(b, f.channels, 2, f.samplerate)
             play_obj = wave_obj.play()
             play_obj.wait_done()
         thread = Thread(target=lambda f=audiofileObj: p(f), args=(audiofileObj,))
-        # thread = Thread(target=lambda f=audiofileObj: winsound.PlaySound(f[0], winsound.SND_FILENAME), args=(audiofileObj,))
+        # thread = Thread(target=lambda f=audiofileObj: winsound.PlaySound(f.path, winsound.SND_FILENAME), args=(audiofileObj,))
         thread.start()
 
     def change_dropdown(self, *args):
@@ -144,7 +142,6 @@ class MyGUI:
     #         self.paramEntrys[i].insert(END, params[i])
     #         self.paramEntrys[i].pack( side=LEFT )
     #         self.f[i].pack()
-
 
 root = Tk()
 my_gui = MyGUI(root)

@@ -42,8 +42,10 @@ class AudioFile:
                 self.bitdepth = 16
             elif s == "PCM_24":
                 self.bitdepth = 24
+            elif s == "FLOAT" or s == "PCM_32":
+                self.bitdepth = 32
             else:
-                raise Exception('unknown subtype:'.format(s))
+                raise Exception('unknown subtype:', s)
 
         else:
             print("Error file not found")
@@ -75,7 +77,7 @@ class AudioFile:
         # min = np.min(np.abs(self.buffer))
         # ampOfminus40dB = self.getDBFs(min)
         # if ampOfminus40dB
-        min = 0.001  # -60dBFs
+        min = 0.0000001  # 0.001 # -60dBFs #TODO - make sure this doesnt wipe the whole audio. select minimum based on audio file.
 
         # get end frame of start noise
         foundNonNoiseAmplitude = False

@@ -27,7 +27,11 @@ class AnalysableAudioFile(AudioFile):
             if self.channels == 1:
                 self.fft = pyfftw.interfaces.numpy_fft.rfft(buffer) #pyfftw fft
             else:
-                self.fft = pyfftw.interfaces.numpy_fft.rfft2(buffer) #pyfftw fft
+                try:
+                    self.fft = pyfftw.interfaces.numpy_fft.rfft2(buffer) #pyfftw fft
+                except:
+                    print(buffer)
+                    raise Exception(buffer, self.path)
 
         # delete DC
         self.fft = self.fft[1:]

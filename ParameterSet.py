@@ -1,15 +1,9 @@
 import AnalysableAudioFile
 
 # TODO
-            # -> ParameterSet class maken met identifier in zich
-            # ParameterSet {
-            #   ParameterSet(AnalysableAudioFile, shouldSaveState=False, isLoadedFromFile, stateID="") ->  fill "set" struct and check if state should be saved to disk.
-            #   struct set {
-            #       string[] parameters
-            #       string identifier (parameters as single string + stateID)
-            #       float[] values
-            #   }
-            # }
+            # create special parameters which check time similarity by using euclidean distance over dynamics. (creates heavy load!)
+            # option 1: save time similarity point inside a point (i.e. [param, param, [time1, time2, time3], param]
+            #   then let euclidean distance check subarrays first for euclidean distance.
 
 class ParameterSet:
     isLoadedFromFile = False
@@ -18,13 +12,13 @@ class ParameterSet:
     af = None
     STATEID = ""
     # string list
-    PARAMETERS = "sub, punch, lowmid, mid, highmid, highs, duration, median, average, spatialness, devOverTimeShort, devOverTime, devOverTime2, devOverTimeLong, dynamicsLong, dynamicsShort, loudestFreq".split(", ")
-    identifier = "" # parameters as single string + identifier
-    values = [] # float list
+    PARAMETERS_STRING = "sub, punch, lowmid, mid, highmid, highs, duration, median, average, spatialness, devOverTimeShort, devOverTime, devOverTime2, devOverTimeLong, dynamicsLong, dynamicsShort, loudestFreq"
+    PARAMETERS = PARAMETERS_STRING.split(", ")
+    IDENTIFIER = PARAMETERS_STRING + STATEID
+    # parameters as single string + identifier
+    values = None # float list
 
-    def __init__(self, analysableaudiofile, values=None, stateID=""):
-        self.STATEID = stateID
-        self.identifier = self.PARAMETERS + self.STATEID
+    def __init__(self, analysableaudiofile, values=None):
         self.af = analysableaudiofile
 
         if values is not None:
@@ -32,7 +26,23 @@ class ParameterSet:
             self.isLoadedFromFile = True
 
     def generateState(self):
+        self.af.load()
+
         if self.values is None:
+            # TESTING
+            # print("All:", af.getMagnitudeForFrequencyRange(0, 50000))
+            # sub4 = af.getMagnitudeForFrequencyRange(26, 73)
+            # sub3 = af.getMagnitudeForFrequencyRange(73, 156)
+            # sub2 = af.getMagnitudeForFrequencyRange(156, 312)
+            # sub = af.getMagnitudeForFrequencyRange(312, 625)
+            # punch = af.getMagnitudeForFrequencyRange(625, 1250)
+            # lowmid = af.getMagnitudeForFrequencyRange(1250, 2500)
+            # mid = af.getMagnitudeForFrequencyRange(2500, 5000)
+            # highmid = af.getMagnitudeForFrequencyRange(5000, 10000)
+            # highs = af.getMagnitudeForFrequencyRange(10000, 20000)
+            # lows = af.getMagnitudeForFrequencyRange(0, 10000)
+            # afState.append([sub4, sub3, sub2, sub, punch, lowmid, mid, highmid, highs, lows])
+
             sub = self.af.getMagnitudeForFrequencyRange(20, 100)
             punch = self.af.getMagnitudeForFrequencyRange(100, 300)
             lowmid = self.af.getMagnitudeForFrequencyRange(300, 500)
@@ -53,6 +63,7 @@ class ParameterSet:
 
             self.values = [sub, punch, lowmid, mid, highmid, highs, duration, median, average, spatialness, devOverTimeShort,
                           devOverTime, devOverTime2, devOverTimeLong, dynamicsLong, dynamicsShort, loudestFreq]
+            # print("values:", self.values)
 
             # check if range is 0-1
             for i in range(len( self.values )):
@@ -61,16 +72,23 @@ class ParameterSet:
                     raise ValueError("Par out of range:", self.parameters[i], " = ", self.values[i])
 
     def saveState(self, file):
-        f_a = open("states", "a+")
+        f_a = open(file, "a+")
         f_a.write("?" + self.af.path + "|" +
                   self.floatArrToString( self.values ) + "|" +
-                  self.identifier)
+                  self.IDENTIFIER)
         f_a.close()
 
-    def floatArrToString(arr):
+    def floatArrToString(self, arr):
         # convert float array to a string with values seperated by commas
         stringArr = ""
         for i in arr:
             stringArr += str(i) + ","
         stringArr = stringArr[:-1]
         return stringArr
+
+    def printValues(self, arr):
+        for i in range(len(arr)):
+            str = "{: 0.2f}".format(arr[i])
+            print( self.values[i], ": ", sep="", end="")
+            print(str[0:5], ",", end="")
+        print()

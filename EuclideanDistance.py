@@ -1,6 +1,4 @@
 import math
-import random
-import sys
 
 def printMDArray(mdArray):
     for i in range(len(mdArray)):

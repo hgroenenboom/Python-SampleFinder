@@ -24,7 +24,7 @@ class FileFinder:
                 for file in files:
                     if num_files < max_files:
                         _, ext = splitext(file)
-                        if ext == ".wav": #and not self.isPathAdded(root+"/"+file):
+                        if ext == ".wav":
                             af = None
                             try:
                                 af = AnalysableAudioFile.AnalysableAudioFile(root+"/"+file)
@@ -34,7 +34,7 @@ class FileFinder:
                                     num_files += 1
                             except Exception as e:
                                 errorsFound = True
-                                # print("\t\t", e)
+                                print("\t\t", e)
                         else:
                             num_files += 1
                     elif max_files == num_files:
