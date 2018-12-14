@@ -18,7 +18,7 @@ class FileFinder:
             else:
                 print("ERROR: dir", directory, " not found!")
             num_files = 0
-            max_files = 500
+            max_files = 300
             for root, dir, files in os.walk(directory):
                 # check every file and add to list
                 for file in files:

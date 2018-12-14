@@ -35,6 +35,26 @@ def main():
     # SELECT FOLDER TO SEARCH FROM FOR AUDIO FILES
     mainFolder = "S:/Audio/Audio - Samples/Samples/"
     dropboxFolder = "C:/Users/HAROL/Dropbox/"
+
+    def getSamplesDirsFromMainFolder():
+        subfolders = os.listdir(mainFolder);
+        toRemove = []
+        for i in range(len(subfolders)):
+            if not os.path.isdir( mainFolder + subfolders[i] ):
+                toRemove.append(i)
+            else:
+                subfolders[i] =  mainFolder + subfolders[i]
+
+        toRemove.reverse()
+        for i in toRemove:
+            subfolders.remove(subfolders[i])
+
+        print(subfolders)
+        return subfolders
+
+    sampleDirs = getSamplesDirsFromMainFolder()
+    sampleDirs.append(dropboxFolder+"Muziek/Samples/")
+
     # J:/Dropbox/Muziek/Samples/Created/Overige/
     # J:/Dropbox/Muziek/Samples/
     # "J:/BackUp/17-09-11 Audio - Samples/Samples/Pro Tools Samples/"
@@ -45,7 +65,8 @@ def main():
     # "J:/BackUp/17-09-11 Audio - Samples/Samples/Musicradar Realworld Drum Samples/"
     # "J:/Dropbox/Muziek/Samples/Created/Test Audio/Noise"
     # "J:/Dropbox/Muziek/Samples/Created/Test Audio/", "J:/Dropbox/Muziek/Samples/Created/Test Audio/Sine"
-    ff = FileFinder.FileFinder([dropboxFolder+"Muziek/Samples/", dropboxFolder+"Muziek/Samples/", mainFolder+"Musicradar Realworld Drum Samples/", mainFolder+"Pro Tools Samples/", mainFolder+"808s_by_SHD", mainFolder+"Eigen Samples", mainFolder+"Timbales", mainFolder+"Ultimate Production Toolbox V1", mainFolder+"Cloudstorm Samples - Free Drums V1", mainFolder+"Drums Of War Samples", mainFolder+"Pro Tools Samples", mainFolder+"PrimeLoops DrumSamplesTaster 2012", mainFolder+"GSCW DRUMS Library Vol.1", mainFolder+"Ethnic Percussion/"])
+    # ff = FileFinder.FileFinder([dropboxFolder+"Muziek/Samples/", dropboxFolder+"Muziek/Samples/", mainFolder+"Musicradar Realworld Drum Samples/", mainFolder+"Pro Tools Samples/", mainFolder+"808s_by_SHD", mainFolder+"Eigen Samples", mainFolder+"Timbales", mainFolder+"Ultimate Production Toolbox V1", mainFolder+"Cloudstorm Samples - Free Drums V1", mainFolder+"Drums Of War Samples", mainFolder+"Pro Tools Samples", mainFolder+"PrimeLoops DrumSamplesTaster 2012", mainFolder+"GSCW DRUMS Library Vol.1", mainFolder+"Ethnic Percussion/"])
+    ff = FileFinder.FileFinder(sampleDirs)
     #    , "J:/BackUp/17-09-11 Audio - Samples/Samples/Hip-Hop/"
     #    , "J:/BackUp/17-09-11 Audio - Samples/Samples/Pro Tools Samples/"
     #
@@ -135,15 +156,21 @@ def main():
 
 
     # GO THROUGH ALL AUDIOFILES FOUND, Either load from state, or calculate parameters and add to state
-    print("Analyzing remaining audiofiles:", len(ff.audiofiles))
+    print("Analyzing remaining audiofiles:", len(ff.audiofiles) - numStatesFound)
+
+    totalSizeToRead = 0
+    for i in range(len(ff.audiofiles)):
+        if af.stateLoaded is False:
+            af.load()
+        if af.stateLoaded is False and af.duration <= 15 and af.duration >= 0.001:
+            totalSizeToRead += af._size
+
     for i in range(len(ff.audiofiles)):
         af = ff.audiofiles[i]
 
         # IF STATE IS NOT FOUND
         # generate state for current audio file
         # shorter then 5 seconds
-        if af.stateLoaded is False:
-            af.load()
         if af.stateLoaded is False and af.duration <= 15 and af.duration >= 0.001:
             newState = [af.path]
 
@@ -186,17 +213,17 @@ def main():
             loudestFreq = af.getLoudestFrequency()
             # TODO
             # -> ParameterSet class maken met identifier in zich
-                # ParameterSet {
-                #   ParameterSet(params, values,shouldSaveState=False, stateID="") ->  fill "set" struct and check if state should be saved to disk.
-                #   struct set {
-                #       string[] parameters
-                #       string identifier (parameters as single string + stateID)
-                #       float[] values
-                #   }
-                # }
+            # ParameterSet {
+            #   ParameterSet(params, values,shouldSaveState=False, stateID="") ->  fill "set" struct and check if state should be saved to disk.
+            #   struct set {
+            #       string[] parameters
+            #       string identifier (parameters as single string + stateID)
+            #       float[] values
+            #   }
+            # }
             # create special parameters which check time similarity by using euclidean distance over dynamics. (creates heavy load!)
-                # option 1: save time similarity point inside a point (i.e. [param, param, [time1, time2, time3], param]
-                #   then let euclidean distance check subarrays first for euclidean distance.
+            # option 1: save time similarity point inside a point (i.e. [param, param, [time1, time2, time3], param]
+            #   then let euclidean distance check subarrays first for euclidean distance.
 
             parameters = [sub, punch, lowmid, mid, highmid, highs, duration, median, average, spatialness, devOverTimeShort, devOverTime, devOverTime2, devOverTimeLong, dynamicsLong, dynamicsShort, loudestFreq]
 
@@ -218,7 +245,7 @@ def main():
             count = count + 1
             af.stateLoaded = True
 
-            if DEBUG or count % int(0.125*len(ff.audiofiles)) == 0:
+            if DEBUG or count % int(0.05*len(ff.audiofiles)) == 0:
                 print(newState)
                 print()
 
@@ -226,9 +253,9 @@ def main():
                 gc.collect()
 
                 print("\n<------------------------------------------------->")
-                print("STATUS: ", 100 * totalSizeRead / ff.sizeOfAudiofiles, "%", end="")
-                print("\t files read:", i, "of total num files:", len(ff.audiofiles))
-                GUI.my_gui.label['text'] = str(100 * totalSizeRead / ff.sizeOfAudiofiles) + "%" #werkt niet omdat gui achteraf pas wordt gebouwd :)
+                print("STATUS: ", 100 * totalSizeRead / totalSizeToRead, "%", end="")
+                print("\t files read:", i, "of total num files:", len(ff.audiofiles) - numStatesFound)
+                GUI.my_gui.label['text'] = str(100 * totalSizeRead / totalSizeToRead) + "%" #werkt niet omdat gui achteraf pas wordt gebouwd :)
                 print("<------------------------------------------------->\n")
 
     print("\n<---------------------------------------------------------------------------------------------------->\n")
