@@ -9,9 +9,11 @@ DEBUG = False
 class AnalysableAudioFile(AudioFile):
     # hasAnalysisTools = True
 
+    filteredBuffer = None
     fft = None
     magFft = None
     monoMagFft = None
+    monoCepstrum = None
 
     def __init__(self, file):
         AudioFile.__init__(self, file)
@@ -39,6 +41,18 @@ class AnalysableAudioFile(AudioFile):
         self.fft = self.fft[ : int( 0.5*len(self.fft) ) ]
 
         return self.fft
+
+    def _doFFT(self, buffer):
+        fftbuffer = None
+        if self.channels == 1:
+            fftbuffer = pyfftw.interfaces.numpy_fft.rfft(buffer)  # pyfftw fft
+        else:
+            try:
+                fftbuffer = pyfftw.interfaces.numpy_fft.rfft2(buffer)  # pyfftw fft
+            except:
+                print(buffer)
+                raise Exception(buffer, self.path)
+        return fftbuffer
 
     def _getFFTMagnitudes(self):
         self._getWaveFile()
@@ -226,3 +240,82 @@ class AnalysableAudioFile(AudioFile):
 
     def _sigmoid(self, val):
         return val / (1 + abs(val))
+
+    def getToneToNoiseRatio(self):
+        self._getFFTMagnitudes()
+        # uses idea of TTNR, doesnt implement bark scales or critical bands.
+        # DOESNT YET WORK.
+
+        sum_ttnr = 0
+        length = len( self.magFft ) - 1
+        n_bands = 24
+        num_freqs_per_band = 5
+        # go through bands.
+        for i in range( n_bands ):
+            bin = int( length * pow( 1 / (2 * n_bands) + i / n_bands, 2) )
+            lowerRange = int( length * pow( i / n_bands, 2) )
+            higherRange = int( length * pow( 1 / n_bands + i / n_bands, 2) )
+            # print(bin, "\n\tlow range:", lowerRange, "\n\thigh range:", higherRange)
+
+            if lowerRange < bin and higherRange > bin:
+                # calculate amplitude of band masks
+                mask_amp = 0
+                for j in range(lowerRange, higherRange):
+                    if j != bin:
+                        mask_amp += self.monoMagFft[j]
+                mask_amp = ( mask_amp / (higherRange - lowerRange) )
+
+                for n in range(num_freqs_per_band):
+                    # get bin range for a specific tone.
+                    tone_bin = int( lowerRange + (higherRange - lowerRange) * ( 1 / (2 * num_freqs_per_band) + n / num_freqs_per_band ) ) # bin = lowestbin + offset + bin
+                    tone_lowerRange = int( pow(n, 0.97) )
+                    tone_higherRange = int( pow(n, 1.03) )
+
+                    # first calculate the amplitude for the specific tone.
+                    tone_amp = 0
+                    if tone_higherRange - tone_lowerRange > 0:
+                        for j in range( tone_lowerRange, tone_higherRange ):
+                            tone_amp = self.monoMagFft[j]
+                        tone_amp /= ( tone_higherRange - tone_lowerRange )
+                    else:
+                        tone_amp = self.monoMagFft[ tone_bin ]
+
+                    # get tone specific ttnr and add to total ttnr
+                    c = 0.0
+                    val = (c+tone_amp) / (c+mask_amp)
+                    if val > 1.5:
+                        sum_ttnr += val
+                    if val > 1.5:
+                        pass
+                        # print("tonebin:", tone_bin, "\n\tmask amp:", mask_amp, "\n\ttone amp:", tone_amp, "\n\tval:", val)
+
+        return sum_ttnr / len(self.monoMagFft)
+
+    def _getMonoCepstrum(self):
+        if self.monoCepstrum is None:
+            if self.filteredBuffer is None:
+                self._AverageFilter()
+            fftbuffer = self._doFFT(self.filteredBuffer)
+            fftbuffer = np.abs(fftbuffer)
+            print("fftbuffer",fftbuffer)
+            fftbuffer = 20 * np.log10(fftbuffer)
+            if self.channels >= 2:
+                fftbuffer = pyfftw.interfaces.numpy_fft.irfft2(fftbuffer)  # pyfftw fft
+            else:
+                fftbuffer = pyfftw.interfaces.numpy_fft.irfft(fftbuffer)  # pyfftw fft
+            self.monoCepstrum = fftbuffer
+        print("cepstrum", self.monoCepstrum)
+
+
+    def _AverageFilter(self):
+        self.load()
+
+        if self.filteredBuffer is None:
+            self.filteredBuffer = self.buffer.copy()
+            for i in range(1, len(self.filteredBuffer)):
+                try:
+                    len(self.filteredBuffer[0])
+                    for j in range( len(self.filteredBuffer[0]) ):
+                        self.filteredBuffer[i][j] = 0.5 * ( self.filteredBuffer[i][j] + self.filteredBuffer[i-1][j] )
+                except:
+                    self.filteredBuffer[i] = 0.5 * ( self.filteredBuffer[i] + self.filteredBuffer[i-1] )

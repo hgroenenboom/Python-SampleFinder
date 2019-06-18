@@ -1,4 +1,5 @@
 import AnalysableAudioFile
+import gc
 
 # TODO
             # create special parameters which check time similarity by using euclidean distance over dynamics. (creates heavy load!)
@@ -10,16 +11,19 @@ class ParameterSet:
     isGenerated = False
 
     af = None
-    STATEID = ""
+    STATEID = "34"
     # string list
-    PARAMETERS_STRING = "sub, punch, lowmid, mid, highmid, highs, duration, median, average, spatialness, devOverTimeShort, devOverTime, devOverTime2, devOverTimeLong, dynamicsLong, dynamicsShort, loudestFreq"
+    PARAMETERS_STRING = "sub, punch, lowmid, mid, highmid, highs, duration, median, average, spatialness, devOverTimeShort, devOverTime, devOverTime2, devOverTimeLong, dynamicsLong, dynamicsShort, loudestFreq, toneToNoiseRatio"
     PARAMETERS = PARAMETERS_STRING.split(", ")
     IDENTIFIER = PARAMETERS_STRING + STATEID
     # parameters as single string + identifier
     values = None # float list
 
     def __init__(self, analysableaudiofile, values=None):
-        self.af = analysableaudiofile
+        if type(analysableaudiofile) is AnalysableAudioFile.AnalysableAudioFile:
+            self.af = analysableaudiofile
+        else:
+            raise TypeError("argument 1 is of type", type(analysableaudiofile), " , should be AnalysableAudioFile")
 
         if values is not None:
             self.values = values
@@ -60,16 +64,22 @@ class ParameterSet:
             dynamicsLong = self.af.getDynamics(0.5)
             dynamicsShort = self.af.getDynamics(0.06)
             loudestFreq = self.af.getLoudestFrequency()
+            toneToNoiseRatio = self.af.getToneToNoiseRatio()
+            print("TTNR:", toneToNoiseRatio, "for file:", self.af.abspath)
+            self.af._getMonoCepstrum()
 
             self.values = [sub, punch, lowmid, mid, highmid, highs, duration, median, average, spatialness, devOverTimeShort,
-                          devOverTime, devOverTime2, devOverTimeLong, dynamicsLong, dynamicsShort, loudestFreq]
+                          devOverTime, devOverTime2, devOverTimeLong, dynamicsLong, dynamicsShort, loudestFreq, toneToNoiseRatio]
             # print("values:", self.values)
 
             # check if range is 0-1
             for i in range(len( self.values )):
                 if self.values[i] > 1 or self.values[i] < 0:
-                    # print("WARNING: Par out of range:", self.values[i], self.values[i])
-                    raise ValueError("Par out of range:", self.parameters[i], " = ", self.values[i])
+                    print("WARNING: Par out of range:", self.values[i], self.values[i])
+                    # raise ValueError("Par out of range:", self.PARAMETERS[i], " = ", self.values[i])
+
+            self.af.freeMem()
+            gc.collect()
 
     def saveState(self, file):
         f_a = open(file, "a+")

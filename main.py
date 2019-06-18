@@ -1,8 +1,8 @@
-import gc
 import random
 import os
 import numpy as np
 import pyfftw
+import math
 
 import FileFinder
 import GUI
@@ -11,7 +11,7 @@ from ParameterSet import ParameterSet
 
 
 # debug variables, (for bypassing print statements)
-DEBUG = False
+DEBUG = True
 count = 0
 
 def getAudioFiles():
@@ -36,9 +36,9 @@ def getAudioFiles():
         return subfolders
 
     sampleDirs = []
-    for i in getSamplesDirsFromMainFolder():
-        sampleDirs.append(i)
-    sampleDirs.append(dropboxFolder + "Muziek/Samples/")
+    # for i in getSamplesDirsFromMainFolder():
+        # sampleDirs.append(i)
+    sampleDirs.append(dropboxFolder + "Muziek/Samples/" + "Created/Test Audio/")
     # ff = FileFinder.FileFinder([dropboxFolder + "Muziek/Samples/", dropboxFolder + "Muziek/Samples/",
     #                             mainFolder + "Musicradar Realworld Drum Samples/", mainFolder + "Pro Tools Samples/",
     #                             mainFolder + "808s_by_SHD", mainFolder + "Eigen Samples", mainFolder + "Timbales",
@@ -53,7 +53,7 @@ def main():
     global DEBUG, count
 
     # Weights
-    weigths = [500000/10, 500000/10, 500000/10, 500000/10, 500000/10, 500000/2, 500000, 1, 500000/3, 2, 3, 12.5, 12.5, 2, 500000, 500000, 500000]
+    weigths = [500000/10, 500000/10, 500000/10, 500000/10, 500000/10, 500000/2, 500000, 1, 500000/3, 2, 3, 12.5, 12.5, 2, 500000, 500000, 500000, 50000]
     for i in range(len(weigths)):
         weigths[i] *= 0.1
     # weigths = [1, 1, 1, 1, 1, 1, 10000, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
@@ -124,7 +124,7 @@ def main():
 
     totalSizeToRead = 0
     for i in range( len(ff.audiofiles) ):
-        # print(af.stateLoaded )
+        af = ff.audiofiles[i]
         if af.stateLoaded == False and af.duration <= 15 and af.duration >= 0.001:
             totalSizeToRead += af._size
     print("Total size to read:", totalSizeToRead)
@@ -145,18 +145,15 @@ def main():
             newSet = ParameterSet( af )
             newSet.generateState()
             parameterSets.append(newSet)
-            newSet.saveState("states")
+            # newSet.saveState("states")
 
             totalSizeRead += af._size
             count = count + 1
             af.stateLoaded = True
 
-            if DEBUG or count % int(0.01*len(ff.audiofiles)) == 0:
+            if DEBUG or count % math.ceil( 0.01 * len(ff.audiofiles) ) == 0:
                 print(newSet)
                 print()
-
-                af.freeMem()
-                gc.collect()
 
                 print("\n<------------------------------------------------->")
                 print("STATUS: ", 100 * totalSizeRead / totalSizeToRead, "%", end="")
@@ -196,14 +193,14 @@ def main():
         values = parameterSets[randint].values
 
         point = []
-        for i in range( len(values) ):
+        for prop in range( len(values) ):
             # temporarally change values to see if lookup works
             # if d[i] == "spatialness":
             #     point.append(1.0 * float(weigths[i]))
             # elif d[i] == "loudestFreq":
             #     point.append(0.2+0.5*s[i] * float(weigths[i]))
             # else:
-            point.append(values[i] * float(weigths[i]))
+            point.append(values[prop] * float(weigths[prop]))
         print("\t", end="")
         # printDataArray(point)
         # print()

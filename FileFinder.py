@@ -5,7 +5,7 @@ import AnalysableAudioFile
 class FileFinder:
     audiofiles = []
     sizeOfAudiofiles = 0
-    maxduration = 2
+    maxduration = 100
 
     def __init__(self, directories):
         errorsFound = False
@@ -18,7 +18,7 @@ class FileFinder:
             else:
                 print("ERROR: dir", directory, " not found!")
             num_files = 0
-            max_files = 300
+            max_files = 400
             for root, dir, files in os.walk(directory):
                 # check every file and add to list
                 for file in files:
